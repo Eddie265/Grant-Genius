@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
@@ -16,13 +16,13 @@ const updateSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
+    const url = new URL(request.url)
+    const id = url.pathname.split("/").pop() as string
+
     const grant = await prisma.grant.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!grant) {
@@ -42,10 +42,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -64,8 +61,11 @@ export async function PATCH(
       updateData.deadline = new Date(data.deadline)
     }
 
+    const url = new URL(request.url)
+    const id = url.pathname.split("/").pop() as string
+
     const grant = await prisma.grant.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
     })
 
@@ -86,10 +86,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -100,8 +97,11 @@ export async function DELETE(
       )
     }
 
+    const url = new URL(request.url)
+    const id = url.pathname.split("/").pop() as string
+
     await prisma.grant.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ message: "Grant deleted successfully" })

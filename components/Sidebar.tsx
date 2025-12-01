@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -12,7 +13,6 @@ import {
   UserCircle,
   Database,
   List,
-  MapPin,
   ChevronRight,
   User,
 } from "lucide-react"
@@ -33,14 +33,25 @@ export function Sidebar() {
   // Authentication removed - no session check needed
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-primary-900 text-white">
+    <div className="flex h-full w-64 flex-col bg-primary-900 text-white">
       {/* Logo Section */}
       <div className="flex h-20 items-center justify-center border-b border-primary-800 px-4">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-6 w-6 text-orange-500" />
+        <div className="flex items-center gap-3">
+          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-white">
+            <Image
+              src="/Grant1.png"
+              alt="GrantGenius Africa logo"
+              fill
+              sizes="40px"
+              className="object-contain"
+              priority
+            />
+          </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold">GrantGenius</span>
-            <span className="text-xs text-primary-300">frica</span>
+            <span className="text-lg font-bold leading-tight">GrantGenius</span>
+            <span className="text-xs text-primary-300 leading-tight">
+              Africa
+            </span>
           </div>
         </div>
       </div>
@@ -60,8 +71,8 @@ export function Sidebar() {
                   : "text-primary-200 hover:bg-primary-800 hover:text-white"
               )}
             >
-              <item.icon className="h-5 w-5" />
-              {item.name}
+              <item.icon className="h-5 w-5 flex-shrink-0" />
+              <span className="truncate">{item.name}</span>
             </Link>
           )
         })}
@@ -70,15 +81,15 @@ export function Sidebar() {
       {/* User Profile Section */}
       <div className="border-t border-primary-800 p-4 bg-primary-800">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary-700 flex items-center justify-center">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary-700">
             <User className="h-6 w-6 text-primary-300" />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white">
               User
             </p>
           </div>
-          <button className="p-1 hover:bg-primary-700 rounded">
+          <button className="rounded p-1 hover:bg-primary-700">
             <ChevronRight className="h-5 w-5 text-primary-300" />
           </button>
         </div>

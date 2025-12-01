@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "GrantGenius Africa - AI-Powered Grant Matching & Proposal Generation",
   description: "Find grants and generate professional proposals with AI assistance",
+  icons: {
+    icon: "/Grant1.png",
+  },
 };
 
 export default function RootLayout({

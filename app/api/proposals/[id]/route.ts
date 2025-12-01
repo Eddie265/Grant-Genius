@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
@@ -10,10 +10,7 @@ const updateSchema = z.object({
   status: z.enum(["DRAFT", "COMPLETED", "ARCHIVED"]).optional(),
 })
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -24,9 +21,12 @@ export async function GET(
       )
     }
 
+    const url = new URL(request.url)
+    const id = url.pathname.split("/").pop() as string
+
     const proposal = await prisma.proposal.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
       include: {
@@ -51,10 +51,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -68,9 +65,12 @@ export async function PATCH(
     const body = await request.json()
     const data = updateSchema.parse(body)
 
+    const url = new URL(request.url)
+    const id = url.pathname.split("/").pop() as string
+
     const proposal = await prisma.proposal.updateMany({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
       data: {
@@ -103,10 +103,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -117,9 +114,12 @@ export async function DELETE(
       )
     }
 
+    const url = new URL(request.url)
+    const id = url.pathname.split("/").pop() as string
+
     const proposal = await prisma.proposal.deleteMany({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     })

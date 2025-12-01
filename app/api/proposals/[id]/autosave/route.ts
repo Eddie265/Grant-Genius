@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
@@ -8,10 +8,7 @@ const autosaveSchema = z.object({
   content: z.string(),
 })
 
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -25,9 +22,12 @@ export async function POST(
     const body = await request.json()
     const { content } = autosaveSchema.parse(body)
 
+    const url = new URL(request.url)
+    const id = url.pathname.split("/").pop() as string
+
     const proposal = await prisma.proposal.updateMany({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
       data: {
