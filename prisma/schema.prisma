@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String
+  image         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  proposals     Proposal[]
+  apiKeys       ApiKey[]
+  
+  @@map("users")
+}
+
+model Grant {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  category    String
+  region      String
+  fundingBody String
+  amount      String?
+  deadline    DateTime?
+  link        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  
+  proposals   Proposal[]
+  
+  @@map("grants")
+}
+
+model Proposal {
+  id          String   @id @default(cuid())
+  title       String
+  grantId     String?
+  grant       Grant?   @relation(fields: [grantId], references: [id], onDelete: SetNull)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal        String   @db.Text
+  orgType     String
+  content     String   @db.Text
+  status      ProposalStatus @default(DRAFT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("proposals")
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  keyHash   String
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+  
+  @@map("api_keys")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ProposalStatus {
+  DRAFT
+  COMPLETED
+  ARCHIVED
+}
+
+
+

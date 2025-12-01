@@ -1,0 +1,9 @@
+# Clear build cache instructions
+# If you encounter chunk loading errors, run:
+# 1. Delete .next folder: rm -rf .next (or rmdir /s .next on Windows)
+# 2. Delete node_modules: rm -rf node_modules (or rmdir /s node_modules on Windows)
+# 3. Reinstall: npm install
+# 4. Restart dev server: npm run dev
+
+
+
