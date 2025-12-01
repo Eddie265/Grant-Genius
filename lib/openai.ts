@@ -1,12 +1,20 @@
 import OpenAI from "openai"
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY is not set")
-}
+let openai: OpenAI | null = null
 
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is not configured")
+  }
+
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  }
+
+  return openai
+}
 
 export async function generateProposal(params: {
   grantTitle: string
@@ -53,7 +61,9 @@ The proposal should be:
 Generate the proposal now:`
 
   try {
-    const completion = await openai.chat.completions.create({
+    const client = getOpenAIClient()
+
+    const completion = await client.chat.completions.create({
       model: "gpt-4",
       messages: [
         {
