@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -13,6 +12,7 @@ import {
   UserCircle,
   Database,
   List,
+  MapPin,
   ChevronRight,
   User,
 } from "lucide-react"
@@ -37,16 +37,7 @@ export function Sidebar() {
       {/* Logo Section */}
       <div className="flex h-20 items-center justify-center border-b border-primary-800 px-4">
         <div className="flex items-center gap-3">
-          <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-white">
-            <Image
-              src="/Grant1.png"
-              alt="GrantGenius Africa logo"
-              fill
-              sizes="40px"
-              className="object-contain"
-              priority
-            />
-          </div>
+          <MapPin className="h-6 w-6 flex-shrink-0 text-orange-500" />
           <div className="flex flex-col">
             <span className="text-lg font-bold leading-tight">GrantGenius</span>
             <span className="text-xs text-primary-300 leading-tight">
