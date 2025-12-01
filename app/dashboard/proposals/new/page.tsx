@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
@@ -13,7 +13,7 @@ interface Grant {
   description: string
 }
 
-export default function NewProposalPage() {
+function ProposalFormContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const grantId = searchParams.get("grantId")
@@ -183,5 +183,10 @@ export default function NewProposalPage() {
   )
 }
 
-
-
+export default function NewProposalPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-gray-500">Loading proposal form...</div>}>
+      <ProposalFormContent />
+    </Suspense>
+  )
+}
