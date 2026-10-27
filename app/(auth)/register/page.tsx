@@ -1,14 +1,24 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { Loader2 } from "lucide-react"
+import { PasswordInput } from "@/components/PasswordInput"
+import { Button, Field, Input, Notice } from "@/components/ui"
+import { legal, site } from "@/lib/site"
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // "Get Pro" on the pricing page lands here with ?next=upgrade
+  const callbackUrl =
+    searchParams.get("next") === "upgrade" ? "/dashboard/upgrade" : searchParams.get("callbackUrl") ?? ""
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [confirmAge, setConfirmAge] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -21,7 +31,7 @@ export default function RegisterPage() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, acceptTerms, confirmAge }),
       })
 
       const data = await response.json()
@@ -31,92 +41,103 @@ export default function RegisterPage() {
         return
       }
 
-      router.push("/login?registered=true")
-    } catch (error) {
-      setError("An error occurred. Please try again.")
+      const params = new URLSearchParams({ registered: "true" })
+      if (callbackUrl.startsWith("/")) params.set("callbackUrl", callbackUrl)
+      router.push(`/login?${params}`)
+    } catch {
+      setError("Something went wrong. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-primary-900 mb-8">
-          GrantGenius Africa
-        </h1>
-        <h2 className="text-2xl font-semibold text-center mb-6">Create Account</h2>
+    <div className="w-full max-w-[440px] animate-fade-up">
+      <div>
+        <h1 className="text-[32px] font-bold leading-tight tracking-[-0.03em] text-zinc-950">Create your account</h1>
+        <p className="mt-1 text-sm text-zinc-500">Start free. No card required.</p>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
+        {error && <Notice tone="error" className="mt-6">{error}</Notice>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <Field label="Full name" htmlFor="name">
+            <Input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
+          </Field>
+          <Field label="Work email" htmlFor="email">
+            <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </Field>
+          <Field label="Password" htmlFor="password" hint="At least 8 characters.">
+            <PasswordInput
               id="password"
-              type="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              minLength={8}
             />
-            <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
+          </Field>
+
+          <div className="space-y-3 rounded-xl bg-zinc-50 p-4 ring-1 ring-inset ring-zinc-200">
+            <label className="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-700">
+              <input
+                type="checkbox"
+                required
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+              />
+              <span>
+                I agree to the{" "}
+                <Link href="/legal/terms" target="_blank" className="font-medium text-zinc-950 underline underline-offset-2">
+                  Terms of Service
+                </Link>
+                ,{" "}
+                <Link href="/legal/acceptable-use" target="_blank" className="font-medium text-zinc-950 underline underline-offset-2">
+                  Acceptable Use Policy
+                </Link>{" "}
+                and{" "}
+                <Link href="/legal/privacy" target="_blank" className="font-medium text-zinc-950 underline underline-offset-2">
+                  Privacy Policy
+                </Link>
+                , and I understand AI drafts must be reviewed before use.
+              </span>
+            </label>
+            <label className="flex items-start gap-3 text-[13px] leading-relaxed text-zinc-700">
+              <input
+                type="checkbox"
+                required
+                checked={confirmAge}
+                onChange={(e) => setConfirmAge(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+              />
+              <span>I am at least {legal.minimumAge} years old.</span>
+            </label>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Creating account..." : "Sign Up"}
-          </button>
+          <Button type="submit" disabled={loading || !acceptTerms || !confirmAge} className="w-full">
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading ? "Creating account…" : "Create account"}
+          </Button>
         </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link href="/login" className="text-primary-600 hover:text-primary-700 font-medium">
-            Sign in
-          </Link>
-        </p>
       </div>
+
+      <p className="mt-6 text-center text-sm text-zinc-600">
+        Already have an account?{" "}
+        <Link href="/login" className="font-medium text-zinc-950 underline-offset-2 hover:underline">
+          Sign in
+        </Link>
+      </p>
+      <p className="mt-2 text-center text-xs text-zinc-400">
+        {site.name} · Registered in {legal.country}
+      </p>
     </div>
   )
 }
 
-
-
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
+  )
+}

@@ -1,37 +1,25 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireUser } from "@/lib/session"
 import { z } from "zod"
 
 const updateSchema = z.object({
-  title: z.string().optional(),
-  content: z.string().optional(),
+  title: z.string().trim().min(1).max(200).optional(),
+  content: z.string().max(500_000).optional(),
   status: z.enum(["DRAFT", "COMPLETED", "ARCHIVED"]).optional(),
 })
 
-export async function GET(request: NextRequest) {
+type Params = { params: Promise<{ id: string }> }
+
+export async function GET(_request: Request, { params }: Params) {
+  const { user, error } = await requireUser()
+  if (error) return error
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-
-    const url = new URL(request.url)
-    const id = url.pathname.split("/").pop() as string
-
+    const { id } = await params
     const proposal = await prisma.proposal.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-      include: {
-        grant: true,
-      },
+      where: { id, userId: user.id },
+      include: { grant: true },
     })
 
     if (!proposal) {
@@ -51,32 +39,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: Request, { params }: Params) {
+  const { user, error } = await requireUser()
+  if (error) return error
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const data = updateSchema.parse(body)
-
-    const url = new URL(request.url)
-    const id = url.pathname.split("/").pop() as string
+    const { id } = await params
+    const data = updateSchema.parse(await request.json())
 
     const proposal = await prisma.proposal.updateMany({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-      data: {
-        ...data,
-        updatedAt: new Date(),
-      },
+      where: { id, userId: user.id },
+      data,
     })
 
     if (proposal.count === 0) {
@@ -90,7 +63,7 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid input", details: error.issues },
         { status: 400 }
       )
     }
@@ -103,25 +76,14 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: Request, { params }: Params) {
+  const { user, error } = await requireUser()
+  if (error) return error
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-
-    const url = new URL(request.url)
-    const id = url.pathname.split("/").pop() as string
-
+    const { id } = await params
     const proposal = await prisma.proposal.deleteMany({
-      where: {
-        id,
-        userId: session.user.id,
-      },
+      where: { id, userId: user.id },
     })
 
     if (proposal.count === 0) {
@@ -140,6 +102,3 @@ export async function DELETE(request: NextRequest) {
     )
   }
 }
-
-
-

@@ -40,3 +40,7 @@ next-env.d.ts
 
 
 
+.neon
+
+# prisma client (generated)
+/lib/generated

@@ -1,36 +1,161 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
+/* Fonts are self-hosted via @fontsource-variable (imported in app/layout.tsx) */
+@theme {
+  --font-sans: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+  /* Brand blue: the accent colour for actions, focus, badges and charts */
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe7fe;
+  --color-brand-200: #bfd4fe;
+  --color-brand-300: #93b6fd;
+  --color-brand-400: #6090fa;
+  --color-brand-500: #3b6cf6;
+  --color-brand-600: #2553eb;
+  --color-brand-700: #1d40d8;
+  --color-brand-800: #1e36af;
+  --color-brand-900: #1e328a;
+  --color-brand-950: #0b1535;
+
+  /* Legacy accent scales resolve to neutral grays */
+  --color-primary-50: #fafafa;
+  --color-primary-100: #f4f4f5;
+  --color-primary-200: #e4e4e7;
+  --color-primary-300: #d4d4d8;
+  --color-primary-400: #a1a1aa;
+  --color-primary-500: #52525b;
+  --color-primary-600: #18181b;
+  --color-primary-700: #09090b;
+  --color-primary-800: #09090b;
+  --color-primary-900: #09090b;
+
+  --color-orange-50: #fafafa;
+  --color-orange-100: #f4f4f5;
+  --color-orange-200: #e4e4e7;
+  --color-orange-300: #d4d4d8;
+  --color-orange-400: #71717a;
+  --color-orange-500: #18181b;
+  --color-orange-600: #09090b;
+  --color-orange-700: #09090b;
+  --color-orange-800: #09090b;
+  --color-orange-900: #09090b;
+
+  --animate-drift: drift 18s ease-in-out infinite alternate;
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+  @keyframes drift {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(6%, -4%, 0) scale(1.08); }
+  }
+  @keyframes fade-up {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
+/* Tailwind v3 defaults that v4 changed: gray borders and pointer cursors on buttons */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-zinc-200, currentColor);
+  }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    color: var(--color-zinc-950);
+    background: #ffffff;
+    -webkit-font-smoothing: antialiased;
+
+  }
+
+  ::selection {
+    background: var(--color-brand-600);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
+@utility text-balance {
+  text-wrap: balance;
+}
 
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
 
+/* Long-form legal and library documents */
+@utility prose-doc {
+  color: var(--color-zinc-700);
+  font-size: 15px;
+  line-height: 1.75;
+
+  & h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-zinc-950);
+    scroll-margin-top: 6rem;
+  }
+  & h3 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--color-zinc-950);
+  }
+  & p { margin-top: 0.75rem; }
+  & ul, & ol { margin-top: 0.75rem; padding-left: 1.25rem; }
+  & ul { list-style: disc; }
+  & ol { list-style: decimal; }
+  & li { margin-top: 0.35rem; padding-left: 0.25rem; }
+  & a { color: var(--color-brand-700); text-decoration: underline; text-underline-offset: 3px; }
+  & strong { color: var(--color-zinc-950); font-weight: 600; }
+}
+
+/* Proposal editor content (Tiptap) */
+.ProseMirror {
+  min-height: 560px;
+  outline: none;
+  color: var(--color-zinc-800);
+  font-size: 15px;
+  line-height: 1.75;
+}
+.ProseMirror h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; margin: 1.5rem 0 0.75rem; color: var(--color-zinc-950); }
+.ProseMirror h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; margin: 1.75rem 0 0.5rem; color: var(--color-zinc-950); }
+.ProseMirror h3 { font-size: 1.05rem; font-weight: 600; margin: 1.25rem 0 0.4rem; color: var(--color-zinc-950); }
+.ProseMirror p { margin: 0.6rem 0; }
+.ProseMirror ul { list-style: disc; padding-left: 1.4rem; margin: 0.6rem 0; }
+.ProseMirror ol { list-style: decimal; padding-left: 1.4rem; margin: 0.6rem 0; }
+.ProseMirror blockquote { border-left: 2px solid var(--color-zinc-300); padding-left: 1rem; color: var(--color-zinc-600); }
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--color-zinc-400);
+  pointer-events: none;
+}

@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar"
 import { Header } from "@/components/Header"
 import { cn } from "@/lib/utils"
 
+// Access is enforced by proxy.ts, which redirects signed-out visitors to /login
 export default function DashboardLayout({
   children,
 }: {
@@ -12,22 +13,26 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Authentication removed - accessible without login
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-zinc-50">
       {/* Mobile sidebar overlay */}
       <div
         className={cn(
-          "fixed inset-0 z-40 flex lg:hidden transition-transform duration-200",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-0 z-40 flex lg:hidden",
+          sidebarOpen ? "pointer-events-auto" : "pointer-events-none"
         )}
       >
         <div
-          className="absolute inset-0 bg-black/40"
+          className={cn("absolute inset-0 bg-zinc-950/40 transition-opacity", sidebarOpen ? "opacity-100" : "opacity-0")}
           onClick={() => setSidebarOpen(false)}
         />
-        <div className="relative h-full w-64">
-          <Sidebar />
+        <div
+          className={cn(
+            "relative h-full transition-transform duration-200",
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <Sidebar onNavigate={() => setSidebarOpen(false)} />
         </div>
       </div>
 

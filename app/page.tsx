@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/session"
 
-export default function Home() {
-  // Redirect directly to dashboard (authentication removed)
-  redirect("/dashboard")
+// No marketing site: send people straight into the product
+export default async function Home() {
+  const user = await getCurrentUser()
+  redirect(user ? "/dashboard" : "/login")
 }
-

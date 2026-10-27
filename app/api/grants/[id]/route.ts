@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/session"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -16,11 +15,11 @@ const updateSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
-export async function GET(request: NextRequest) {
-  try {
-    const url = new URL(request.url)
-    const id = url.pathname.split("/").pop() as string
+type Params = { params: Promise<{ id: string }> }
 
+export async function GET(_request: Request, { params }: Params) {
+  try {
+    const { id } = await params
     const grant = await prisma.grant.findUnique({
       where: { id },
     })
@@ -42,38 +41,28 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: Request, { params }: Params) {
+  const { error } = await requireAdmin()
+  if (error) return error
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 }
-      )
-    }
-
-    const body = await request.json()
-    const data = updateSchema.parse(body)
-
-    const updateData: any = { ...data }
-    if (data.deadline) {
-      updateData.deadline = new Date(data.deadline)
-    }
-
-    const url = new URL(request.url)
-    const id = url.pathname.split("/").pop() as string
+    const { id } = await params
+    const data = updateSchema.parse(await request.json())
 
     const grant = await prisma.grant.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...data,
+        link: data.link || null,
+        deadline: data.deadline === undefined ? undefined : data.deadline ? new Date(data.deadline) : null,
+      },
     })
 
     return NextResponse.json({ grant })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid input", details: error.issues },
         { status: 400 }
       )
     }
@@ -86,20 +75,12 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: Request, { params }: Params) {
+  const { error } = await requireAdmin()
+  if (error) return error
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 }
-      )
-    }
-
-    const url = new URL(request.url)
-    const id = url.pathname.split("/").pop() as string
-
+    const { id } = await params
     await prisma.grant.delete({
       where: { id },
     })
@@ -113,6 +94,3 @@ export async function DELETE(request: NextRequest) {
     )
   }
 }
-
-
-

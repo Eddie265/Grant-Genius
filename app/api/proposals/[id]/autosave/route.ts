@@ -1,39 +1,26 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { requireUser } from "@/lib/session"
 import { z } from "zod"
 
 const autosaveSchema = z.object({
-  content: z.string(),
+  content: z.string().max(500_000),
 })
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { user, error } = await requireUser()
+  if (error) return error
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const { content } = autosaveSchema.parse(body)
-
-    const url = new URL(request.url)
-    const id = url.pathname.split("/").pop() as string
+    const { id } = await params
+    const { content } = autosaveSchema.parse(await request.json())
 
     const proposal = await prisma.proposal.updateMany({
-      where: {
-        id,
-        userId: session.user.id,
-      },
-      data: {
-        content,
-        updatedAt: new Date(),
-      },
+      where: { id, userId: user.id },
+      data: { content },
     })
 
     if (proposal.count === 0) {
@@ -43,11 +30,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ message: "Proposal autosaved successfully" })
+    return NextResponse.json({ message: "Saved", savedAt: new Date().toISOString() })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid input", details: error.issues },
         { status: 400 }
       )
     }
@@ -59,6 +46,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
-
-

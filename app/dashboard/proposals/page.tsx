@@ -1,162 +1,159 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { FileText, Plus, Trash2, Loader2, Search } from "lucide-react"
 import { formatDate } from "@/lib/utils"
-import { FileText, Plus, Trash2, Edit } from "lucide-react"
+import { Badge, Button, ButtonLink, Card, EmptyState, Input, Notice, PageHeader } from "@/components/ui"
 
 interface Proposal {
   id: string
   title: string
-  status: string
+  status: "DRAFT" | "COMPLETED" | "ARCHIVED"
+  orgType: string
   createdAt: string
   updatedAt: string
-  grant: {
-    id: string
-    title: string
-    fundingBody: string
-  } | null
+  grant: { id: string; title: string; fundingBody: string } | null
 }
+
+const statusTone = { COMPLETED: "solid", DRAFT: "outline", ARCHIVED: "muted" } as const
+const statusLabel = { COMPLETED: "Completed", DRAFT: "Draft", ARCHIVED: "Archived" }
 
 export default function ProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [query, setQuery] = useState("")
+  const [status, setStatus] = useState<"ALL" | Proposal["status"]>("ALL")
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchProposals()
+    fetch("/api/proposals")
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error)
+        setProposals(data.proposals)
+      })
+      .catch(() => setError("We couldn't load your proposals. Refresh to try again."))
+      .finally(() => setLoading(false))
   }, [])
 
-  const fetchProposals = async () => {
-    try {
-      const response = await fetch("/api/proposals")
-      const data = await response.json()
-      setProposals(data.proposals || [])
-    } catch (error) {
-      console.error("Error fetching proposals:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this proposal?")) {
-      return
-    }
-
+    setDeletingId(id)
     try {
-      const response = await fetch(`/api/proposals/${id}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        setProposals(proposals.filter((p) => p.id !== id))
-      } else {
-        alert("Failed to delete proposal")
-      }
-    } catch (error) {
-      console.error("Error deleting proposal:", error)
-      alert("An error occurred")
+      const response = await fetch(`/api/proposals/${id}`, { method: "DELETE" })
+      if (!response.ok) throw new Error()
+      setProposals((list) => list.filter((p) => p.id !== id))
+    } catch {
+      setError("Failed to delete the proposal. Please try again.")
+    } finally {
+      setDeletingId(null)
+      setConfirmId(null)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-8">
-        <div className="text-center py-12">
-          <p className="text-gray-500">Loading proposals...</p>
-        </div>
-      </div>
-    )
-  }
+  const visible = proposals.filter(
+    (p) =>
+      (status === "ALL" || p.status === status) &&
+      (p.title.toLowerCase().includes(query.toLowerCase()) ||
+        p.grant?.title.toLowerCase().includes(query.toLowerCase()))
+  )
 
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Proposals</h1>
-          <p className="text-gray-600 mt-2">Manage your grant proposals</p>
-        </div>
-        <Link
-          href="/dashboard/proposals/new"
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          <Plus className="h-5 w-5" />
-          New Proposal
-        </Link>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-8">
+      <PageHeader
+        title="Proposals"
+        description="Every draft you’ve generated or edited."
+        actions={
+          <ButtonLink href="/dashboard/proposals/new" size="sm">
+            <Plus className="h-3.5 w-3.5" /> New proposal
+          </ButtonLink>
+        }
+      />
 
-      <div className="bg-white rounded-lg shadow">
-        {proposals.length === 0 ? (
-          <div className="p-12 text-center">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">No proposals yet</p>
-            <Link
-              href="/dashboard/proposals/new"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-            >
-              <Plus className="h-5 w-5" />
-              Create Your First Proposal
-            </Link>
+      {error && <Notice tone="error">{error}</Notice>}
+
+      <Card>
+        <div className="flex flex-col gap-3 border-b border-zinc-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <Input placeholder="Search proposals" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9" />
           </div>
-        ) : (
-          <div className="divide-y divide-gray-200">
-            {proposals.map((proposal) => (
-              <div
-                key={proposal.id}
-                className="p-6 hover:bg-gray-50 transition-colors"
+          <div className="flex gap-1 rounded-full bg-zinc-100 p-1 text-[13px]">
+            {(["ALL", "DRAFT", "COMPLETED", "ARCHIVED"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatus(s)}
+                className={`rounded-full px-3 py-1 font-medium transition-colors ${
+                  status === s ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {proposal.title}
-                      </h3>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded ${
-                          proposal.status === "COMPLETED"
-                            ? "bg-green-100 text-green-800"
-                            : proposal.status === "ARCHIVED"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {proposal.status}
-                      </span>
-                    </div>
-                    {proposal.grant && (
-                      <p className="text-sm text-gray-600 mb-1">
-                        Grant: {proposal.grant.title} • {proposal.grant.fundingBody}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-400">
-                      Created {formatDate(proposal.createdAt)} • Updated {formatDate(proposal.updatedAt)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/dashboard/proposals/${proposal.id}`}
-                      className="p-2 text-primary-600 hover:bg-primary-50 rounded-md"
-                      title="Edit"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(proposal.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-md"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                {s === "ALL" ? "All" : statusLabel[s]}
+              </button>
             ))}
           </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-16 text-sm text-zinc-500">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading proposals…
+          </div>
+        ) : proposals.length === 0 ? (
+          <EmptyState
+            icon={<FileText className="h-5 w-5" />}
+            title="No proposals yet"
+            description="Describe your project and we’ll draft a structured proposal you can edit and export."
+            action={
+              <ButtonLink href="/dashboard/proposals/new" size="sm">
+                <Plus className="h-3.5 w-3.5" /> Create your first proposal
+              </ButtonLink>
+            }
+          />
+        ) : visible.length === 0 ? (
+          <p className="py-14 text-center text-sm text-zinc-500">No proposals match your filters.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-100">
+            {visible.map((proposal) => (
+              <li key={proposal.id} className="flex items-center gap-4 px-4 py-4 sm:px-5">
+                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 sm:flex">
+                  <FileText className="h-[18px] w-[18px]" />
+                </div>
+                <Link href={`/dashboard/proposals/${proposal.id}`} className="group min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-sm font-medium text-zinc-950 group-hover:underline">{proposal.title}</p>
+                    <Badge tone={statusTone[proposal.status]}>{statusLabel[proposal.status]}</Badge>
+                  </div>
+                  <p className="mt-1 truncate text-xs text-zinc-500">
+                    {proposal.grant ? `${proposal.grant.fundingBody} · ` : ""}
+                    {proposal.orgType} · Updated {formatDate(proposal.updatedAt)}
+                  </p>
+                </Link>
+                {confirmId === proposal.id ? (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="hidden text-xs text-zinc-500 sm:inline">Delete permanently?</span>
+                    <Button size="sm" variant="ghost" onClick={() => setConfirmId(null)}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" variant="danger" disabled={deletingId === proposal.id} onClick={() => handleDelete(proposal.id)}>
+                      {deletingId === proposal.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Delete"}
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmId(proposal.id)}
+                    className="shrink-0 rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-950"
+                    title="Delete proposal"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete {proposal.title}</span>
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
-
-
-

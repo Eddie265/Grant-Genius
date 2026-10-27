@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import "@fontsource-variable/space-grotesk";
+import "@fontsource-variable/geist-mono";
 import "./globals.css";
 import { Providers } from "./providers";
-
-const inter = Inter({ subsets: ["latin"] });
+import { CookieNotice } from "@/components/CookieNotice";
+import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "GrantGenius Africa - AI-Powered Grant Matching & Proposal Generation",
-  description: "Find grants and generate professional proposals with AI assistance",
-  icons: {
-    icon: "/Grant1.png",
+  metadataBase: new URL(site.url),
+  title: {
+    default: site.name,
+    template: `%s · ${site.shortName}`,
   },
+  description: site.description,
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({
@@ -20,12 +23,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-sans">
         <Providers>{children}</Providers>
+        <CookieNotice />
       </body>
     </html>
   );
 }
-
-
-

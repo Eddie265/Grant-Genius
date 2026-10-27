@@ -1,66 +1,58 @@
 "use client"
 
-import { Suspense, useState, useEffect } from "react"
+import { Suspense, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEditor, EditorContent } from "@tiptap/react"
-import StarterKit from "@tiptap/starter-kit"
-import Placeholder from "@tiptap/extension-placeholder"
-import { Loader2 } from "lucide-react"
+import { Loader2, Sparkles, Info, X } from "lucide-react"
+import { Button, ButtonLink, Card, Field, Input, Notice, PageHeader, Textarea } from "@/components/ui"
 
 interface Grant {
   id: string
   title: string
   description: string
+  fundingBody: string
 }
+
+const orgTypes = ["NGO / Non-profit", "Community-based organisation", "Social enterprise", "Cooperative", "Research institution", "Faith-based organisation"]
 
 function ProposalFormContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const grantId = searchParams.get("grantId")
-
   const [grantTitle, setGrantTitle] = useState("")
   const [goal, setGoal] = useState("")
   const [orgType, setOrgType] = useState("")
   const [selectedGrant, setSelectedGrant] = useState<Grant | null>(null)
-  const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: "Your proposal will appear here after generation...",
-      }),
-    ],
-    content: "",
-  })
+  const [error, setError] = useState("")
+  const [limitReached, setLimitReached] = useState(false)
+  const [usage, setUsage] = useState<{ used: number; allowance: number } | null>(null)
 
   useEffect(() => {
-    if (grantId) {
-      fetchGrant(grantId)
-    }
+    fetch("/api/account")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setUsage(d.usage))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!grantId) return
+    fetch(`/api/grants/${grantId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.grant) {
+          setSelectedGrant(data.grant)
+          setGrantTitle(data.grant.title)
+        }
+      })
+      .catch(() => {})
   }, [grantId])
 
-  const fetchGrant = async (id: string) => {
-    try {
-      const response = await fetch(`/api/grants/${id}`)
-      const data = await response.json()
-      if (data.grant) {
-        setSelectedGrant(data.grant)
-        setGrantTitle(data.grant.title)
-      }
-    } catch (error) {
-      console.error("Error fetching grant:", error)
-    }
-  }
-
-  const handleGenerate = async () => {
-    if (!grantTitle || !goal || !orgType) {
-      alert("Please fill in all required fields")
-      return
-    }
-
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
     setGenerating(true)
+
     try {
       const response = await fetch("/api/proposals/generate", {
         method: "POST",
@@ -77,115 +69,138 @@ function ProposalFormContent() {
       const data = await response.json()
 
       if (!response.ok) {
+        if (data.code === "LIMIT_REACHED") setLimitReached(true)
         throw new Error(data.error || "Failed to generate proposal")
       }
 
-      if (editor && data.proposal.content) {
-        editor.commands.setContent(data.proposal.content)
-      }
-
-      // Redirect to edit page
       router.push(`/dashboard/proposals/${data.proposal.id}`)
-    } catch (error) {
-      console.error("Error generating proposal:", error)
-      alert(error instanceof Error ? error.message : "Failed to generate proposal")
-    } finally {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate proposal")
       setGenerating(false)
     }
   }
 
+  const remaining = usage ? Math.max(0, usage.allowance - usage.used) : null
+
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Generate New Proposal</h1>
-        <p className="text-gray-600 mt-2">Fill in the details below to generate an AI-powered proposal</p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-8">
+      <PageHeader
+        title="New proposal"
+        description="Describe your project and we’ll draft a structured proposal for you to review and edit."
+      />
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Grant Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={grantTitle}
-            onChange={(e) => setGrantTitle(e.target.value)}
-            placeholder="Enter the grant opportunity title"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-            disabled={!!selectedGrant}
-          />
-          {selectedGrant && (
-            <p className="mt-1 text-sm text-gray-500">
-              Linked to grant: {selectedGrant.title}
-            </p>
+      {error && (
+        <Notice tone="error">
+          {error}
+          {limitReached && (
+            <Link href="/dashboard/upgrade" className="ml-1 font-medium underline underline-offset-2">
+              See plans
+            </Link>
           )}
-        </div>
+        </Notice>
+      )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Organization Type <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={orgType}
-            onChange={(e) => setOrgType(e.target.value)}
-            placeholder="e.g., Non-profit, NGO, Social Enterprise, Community Organization"
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Project Goal/Idea <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            placeholder="Describe your project idea, goals, and what you hope to achieve..."
-            rows={6}
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Generated Proposal Preview
-          </label>
-          <div className="border border-gray-300 rounded-md min-h-[400px] p-4">
-            <EditorContent editor={editor} />
-          </div>
-        </div>
-
-        <div className="flex gap-4">
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !grantTitle || !goal || !orgType}
-            className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {generating ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Generating...
-              </>
+      <Card className="p-6">
+        <form onSubmit={handleGenerate} className="space-y-5">
+          <Field label="Grant opportunity" htmlFor="grantTitle" required>
+            {selectedGrant ? (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3.5 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-zinc-950">{selectedGrant.title}</p>
+                  <p className="truncate text-xs text-zinc-500">{selectedGrant.fundingBody}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedGrant(null)
+                    setGrantTitle("")
+                    router.replace("/dashboard/proposals/new")
+                  }}
+                  className="rounded-md p-1 text-zinc-400 hover:bg-white hover:text-zinc-900"
+                  title="Unlink grant"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             ) : (
-              "Generate Proposal"
+              <Input
+                id="grantTitle"
+                required
+                maxLength={300}
+                value={grantTitle}
+                onChange={(e) => setGrantTitle(e.target.value)}
+                placeholder="e.g. Climate-Smart Agriculture Fund 2026"
+              />
             )}
-          </button>
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          </Field>
+
+          <Field label="Organisation type" htmlFor="orgType" required>
+            <Input
+              id="orgType"
+              required
+              list="org-types"
+              maxLength={200}
+              value={orgType}
+              onChange={(e) => setOrgType(e.target.value)}
+              placeholder="e.g. NGO / Non-profit"
+            />
+            <datalist id="org-types">
+              {orgTypes.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+          </Field>
+
+          <Field
+            label="Project goal or idea"
+            htmlFor="goal"
+            required
+            hint="Who you serve, the problem, what you’ll do, where, and for how long. Plain language is fine."
           >
-            Cancel
-          </button>
-        </div>
-      </div>
+            <Textarea
+              id="goal"
+              required
+              minLength={10}
+              maxLength={5000}
+              rows={7}
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="We want to train 200 women smallholder farmers in Zomba district in drought-resilient farming over 18 months…"
+            />
+          </Field>
+
+          <div className="flex gap-3 rounded-lg bg-zinc-50 p-4 text-[13px] leading-relaxed text-zinc-600 ring-1 ring-inset ring-zinc-200">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
+            <p>
+              The AI drafts a starting point and marks unknown facts as <strong className="text-zinc-900">[placeholders]</strong>.
+              Review every claim, add your real figures, and follow the funder’s rules on AI use. Don’t include sensitive
+              personal data. <Link href="/legal/ai-disclaimer" className="underline underline-offset-2">AI disclaimer</Link>
+            </p>
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-zinc-500">
+              {remaining !== null && `${remaining} of ${usage!.allowance} AI proposals left this month.`}
+            </p>
+            <div className="flex gap-2">
+              <ButtonLink href="/dashboard/proposals" variant="secondary">
+                Cancel
+              </ButtonLink>
+              <Button type="submit" disabled={generating || !grantTitle || !goal || !orgType || remaining === 0}>
+                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {generating ? "Drafting… (up to a minute)" : "Generate draft"}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Card>
     </div>
   )
 }
 
 export default function NewProposalPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-gray-500">Loading proposal form...</div>}>
+    <Suspense fallback={<div className="p-8 text-sm text-zinc-500">Loading…</div>}>
       <ProposalFormContent />
     </Suspense>
   )

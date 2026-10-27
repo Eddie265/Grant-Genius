@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { requireAdmin } from "@/lib/session"
+import type { Prisma } from "@/lib/generated/prisma/client"
 import { z } from "zod"
 
 const grantSchema = z.object({
@@ -22,11 +22,11 @@ export async function GET(request: Request) {
     const region = searchParams.get("region")
     const fundingBody = searchParams.get("fundingBody")
     const search = searchParams.get("search")
+    // Admins can list inactive grants too (?all=1)
+    const includeInactive = searchParams.get("all") === "1"
 
-    const where: any = {
-      isActive: true,
-    }
-
+    const where: Prisma.GrantWhereInput = {}
+    if (!includeInactive) where.isActive = true
     if (category) where.category = category
     if (region) where.region = region
     if (fundingBody) where.fundingBody = fundingBody
@@ -34,14 +34,13 @@ export async function GET(request: Request) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
+        { fundingBody: { contains: search, mode: "insensitive" } },
       ]
     }
 
     const grants = await prisma.grant.findMany({
       where,
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ deadline: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
     })
 
     return NextResponse.json({ grants })
@@ -55,24 +54,18 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const { user, error } = await requireAdmin()
+  if (error) return error
+
   try {
-    const session = await getServerSession(authOptions)
-
-    if (!session?.user?.id || session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 }
-      )
-    }
-
-    const body = await request.json()
-    const data = grantSchema.parse(body)
+    const data = grantSchema.parse(await request.json())
 
     const grant = await prisma.grant.create({
       data: {
         ...data,
+        link: data.link || null,
         deadline: data.deadline ? new Date(data.deadline) : null,
-        createdBy: session.user.id,
+        createdBy: user.id,
       },
     })
 
@@ -80,7 +73,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid input", details: error.issues },
         { status: 400 }
       )
     }
@@ -92,6 +85,3 @@ export async function POST(request: Request) {
     )
   }
 }
-
-
-

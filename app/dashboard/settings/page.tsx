@@ -1,155 +1,236 @@
 "use client"
 
-import { useState } from "react"
-import { User, Key, Save } from "lucide-react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { signOut, useSession } from "next-auth/react"
+import { Download, Loader2 } from "lucide-react"
+import { PasswordInput } from "@/components/PasswordInput"
+import { Button, Card, CardHeader, Field, Input, Notice, PageHeader } from "@/components/ui"
+
+type Account = {
+  name: string | null
+  email: string
+  createdAt: string
+  acceptedTermsAt: string | null
+  termsVersion: string | null
+}
+
+type Status = { tone: "success" | "error"; text: string } | null
+
+function formatLongDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+}
 
 export default function SettingsPage() {
-  // Authentication removed - using default values
-  const [name, setName] = useState("User")
-  const [email, setEmail] = useState("user@example.com")
-  const [apiKeyName, setApiKeyName] = useState("")
-  const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState("")
+  const { update } = useSession()
+  const [account, setAccount] = useState<Account | null>(null)
+  const [name, setName] = useState("")
+  const [profileStatus, setProfileStatus] = useState<Status>(null)
+  const [savingProfile, setSavingProfile] = useState(false)
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [passwordStatus, setPasswordStatus] = useState<Status>(null)
+  const [savingPassword, setSavingPassword] = useState(false)
+
+  const [deletePassword, setDeletePassword] = useState("")
+  const [confirmText, setConfirmText] = useState("")
+  const [deleteError, setDeleteError] = useState("")
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/account")
+      .then((r) => r.json())
+      .then((d) => {
+        setAccount(d.account)
+        setName(d.account.name ?? "")
+      })
+      .catch(() => {})
+  }, [])
+
+  const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSaving(true)
-    setMessage("")
-
-    try {
-      // In a real app, you'd have an API endpoint to update the profile
-      // For now, we'll just show a message
-      setMessage("Profile updated successfully!")
-      setTimeout(() => setMessage(""), 3000)
-    } catch (error) {
-      setMessage("Failed to update profile")
-    } finally {
-      setSaving(false)
+    setSavingProfile(true)
+    setProfileStatus(null)
+    const res = await fetch("/api/account", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      await update({ name: data.name })
+      setProfileStatus({ tone: "success", text: "Profile updated." })
+    } else {
+      setProfileStatus({ tone: "error", text: data.error || "Couldn't update profile." })
     }
+    setSavingProfile(false)
   }
 
-  const handleCreateApiKey = async (e: React.FormEvent) => {
+  const changePassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!apiKeyName) {
-      setMessage("Please enter a name for the API key")
+    setSavingPassword(true)
+    setPasswordStatus(null)
+    const res = await fetch("/api/account/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setCurrentPassword("")
+      setNewPassword("")
+      setPasswordStatus({ tone: "success", text: "Password changed." })
+    } else {
+      setPasswordStatus({ tone: "error", text: data.error || "Couldn't change password." })
+    }
+    setSavingPassword(false)
+  }
+
+  const deleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setDeleting(true)
+    setDeleteError("")
+    const res = await fetch("/api/account", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: deletePassword }),
+    })
+    if (res.ok) {
+      await signOut({ callbackUrl: "/login?deleted=true" })
       return
     }
-
-    setSaving(true)
-    setMessage("")
-
-    try {
-      // In a real app, you'd have an API endpoint to create API keys
-      setMessage("API key creation feature coming soon!")
-      setApiKeyName("")
-      setTimeout(() => setMessage(""), 3000)
-    } catch (error) {
-      setMessage("Failed to create API key")
-    } finally {
-      setSaving(false)
-    }
+    const data = await res.json()
+    setDeleteError(data.error || "Couldn't delete account.")
+    setDeleting(false)
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-8">
+      <PageHeader title="Settings" description="Manage your profile, security and personal data." />
 
-      {message && (
-        <div
-          className={`mb-6 p-4 rounded-md ${
-            message.includes("success") || message.includes("soon")
-              ? "bg-green-100 text-green-700 border border-green-400"
-              : "bg-red-100 text-red-700 border border-red-400"
-          }`}
-        >
-          {message}
-        </div>
-      )}
-
-      <div className="space-y-6">
-        {/* Profile Settings */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <User className="h-6 w-6 text-primary-600" />
-            <h2 className="text-xl font-semibold text-gray-900">Profile Settings</h2>
+      <Card>
+        <CardHeader title="Profile" description="Your name appears on your dashboard and in messages to us." />
+        <form onSubmit={saveProfile} className="space-y-4 p-5">
+          {profileStatus && <Notice tone={profileStatus.tone}>{profileStatus.text}</Notice>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Full name" htmlFor="name">
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} minLength={2} maxLength={100} required />
+            </Field>
+            <Field label="Email" htmlFor="email" hint="Contact support to change your email.">
+              <Input id="email" value={account?.email ?? ""} disabled />
+            </Field>
           </div>
-
-          <form onSubmit={handleSaveProfile} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                disabled
-                className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" />
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </form>
-        </div>
-
-        {/* API Key Management */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Key className="h-6 w-6 text-primary-600" />
-            <h2 className="text-xl font-semibold text-gray-900">API Key Management</h2>
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" disabled={savingProfile || !account}>
+              {savingProfile && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Save changes
+            </Button>
           </div>
+        </form>
+      </Card>
 
-          <p className="text-sm text-gray-600 mb-4">
-            Create API keys to access GrantGenius programmatically. This feature will be available in future versions.
-          </p>
-
-          <form onSubmit={handleCreateApiKey} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                API Key Name
-              </label>
-              <input
-                type="text"
-                value={apiKeyName}
-                onChange={(e) => setApiKeyName(e.target.value)}
-                placeholder="e.g., Production API Key"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+      <Card>
+        <CardHeader title="Password" description="Use at least 8 characters. Avoid reusing passwords from other sites." />
+        <form onSubmit={changePassword} className="space-y-4 p-5">
+          {passwordStatus && <Notice tone={passwordStatus.tone}>{passwordStatus.text}</Notice>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Current password" htmlFor="currentPassword">
+              <PasswordInput
+                id="currentPassword"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
               />
-            </div>
+            </Field>
+            <Field label="New password" htmlFor="newPassword">
+              <PasswordInput
+                id="newPassword"
+                autoComplete="new-password"
+                minLength={8}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </Field>
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" size="sm" disabled={savingPassword}>
+              {savingPassword && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Update password
+            </Button>
+          </div>
+        </form>
+      </Card>
 
-            <button
-              type="submit"
-              disabled={saving || !apiKeyName}
-              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-            >
-              {saving ? "Creating..." : "Create API Key"}
-            </button>
-          </form>
+      <Card>
+        <CardHeader
+          title="Your data"
+          description={
+            <>
+              Download a copy of everything we hold about you. See our{" "}
+              <Link href="/legal/privacy" className="underline underline-offset-2">
+                Privacy Policy
+              </Link>
+              .
+            </>
+          }
+        />
+        <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+          <dl className="space-y-1 text-[13px]">
+            {account && (
+              <>
+                <div className="flex gap-2">
+                  <dt className="text-zinc-500">Member since</dt>
+                  <dd className="text-zinc-900">{formatLongDate(account.createdAt)}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-zinc-500">Terms accepted</dt>
+                  <dd className="text-zinc-900">
+                    {account.acceptedTermsAt
+                      ? `${formatLongDate(account.acceptedTermsAt)} (version ${account.termsVersion})`
+                      : "Before versioned terms were recorded"}
+                  </dd>
+                </div>
+              </>
+            )}
+          </dl>
+          <a
+            href="/api/account/export"
+            className="inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px] font-medium text-zinc-900 ring-1 ring-zinc-200 hover:bg-zinc-50"
+          >
+            <Download className="h-3.5 w-3.5" /> Export my data (JSON)
+          </a>
         </div>
-      </div>
+      </Card>
+
+      <Card className="border-zinc-950">
+        <CardHeader
+          title="Delete account"
+          description="Permanently deletes your account and all your proposals. This cannot be undone."
+        />
+        <form onSubmit={deleteAccount} className="space-y-4 p-5">
+          {deleteError && <Notice tone="error">{deleteError}</Notice>}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Your password" htmlFor="deletePassword">
+              <PasswordInput
+                id="deletePassword"
+                autoComplete="current-password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                required
+              />
+            </Field>
+            <Field label='Type "DELETE" to confirm' htmlFor="confirmDelete">
+              <Input id="confirmDelete" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} required />
+            </Field>
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" variant="danger" size="sm" disabled={deleting || confirmText !== "DELETE" || !deletePassword}>
+              {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Delete my account
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   )
 }
-

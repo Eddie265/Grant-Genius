@@ -2,12 +2,13 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
+// Connection URLs live in prisma.config.ts (CLI) and lib/prisma.ts (runtime adapter)
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -18,11 +19,16 @@ model User {
   password      String
   image         String?
   role          Role      @default(USER)
+  plan          Plan      @default(FREE)
+  // Records which version of the Terms & Privacy Policy the user agreed to
+  acceptedTermsAt DateTime?
+  termsVersion    String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
   proposals     Proposal[]
   apiKeys       ApiKey[]
+  inquiries     Inquiry[]
   
   @@map("users")
 }
@@ -74,6 +80,43 @@ model ApiKey {
   createdAt DateTime @default(now())
   
   @@map("api_keys")
+}
+
+// Support, sales and upgrade requests from the site and dashboard
+model Inquiry {
+  id        String        @id @default(cuid())
+  type      InquiryType
+  status    InquiryStatus @default(OPEN)
+  name      String
+  email     String
+  company   String?
+  subject   String?
+  plan      String?
+  message   String        @db.Text
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([status, createdAt])
+  @@map("inquiries")
+}
+
+enum InquiryType {
+  SUPPORT
+  SALES
+  UPGRADE
+}
+
+enum InquiryStatus {
+  OPEN
+  CLOSED
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
 }
 
 enum Role {
