@@ -1,8 +1,13 @@
 import type { Metadata } from "next"
+import { pageMetadata } from "@/lib/seo"
 import { LegalDoc, type LegalSection } from "@/components/site/LegalDoc"
 import { site } from "@/lib/site"
 
-export const metadata: Metadata = { title: "Acceptable Use Policy" }
+export const metadata: Metadata = pageMetadata({
+  title: "Acceptable Use Policy",
+  description: "What you may not do with Grant Genius Africa: honesty towards funders, prohibited content and protecting the platform.",
+  path: "/legal/acceptable-use",
+})
 
 const sections: LegalSection[] = [
   {

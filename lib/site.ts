@@ -1,12 +1,34 @@
 // Single source of truth for brand, contact and legal details used across
 // the marketing site, legal pages and dashboard. Update here, not in pages.
 
+// Public address used in share previews, canonical links and the sitemap.
+// Set SITE_URL in production; on Vercel the production domain is used automatically.
+function siteUrl() {
+  const url =
+    process.env.SITE_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000"
+  return url.replace(/\/$/, "")
+}
+
 export const site = {
   name: "Grant Genius Africa",
   shortName: "Grant Genius",
+  tagline: "AI grant proposals for African organisations",
   description:
-    "Find African grant opportunities and draft strong, funder-ready proposals with AI assistance.",
-  url: process.env.NEXTAUTH_URL || "http://localhost:3000",
+    "Find African grant opportunities and draft strong, funder-ready proposals with AI assistance. Built for NGOs, social enterprises and community organisations.",
+  keywords: [
+    "grant proposal writing",
+    "AI grant writer",
+    "African grants",
+    "NGO funding",
+    "grant opportunities Africa",
+    "proposal generator",
+    "concept note template",
+    "Malawi grants",
+  ],
+  url: siteUrl(),
   supportEmail: "support@grantgenius.africa",
   privacyEmail: "privacy@grantgenius.africa",
   legalEmail: "legal@grantgenius.africa",

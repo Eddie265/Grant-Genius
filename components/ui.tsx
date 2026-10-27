@@ -9,7 +9,7 @@ const buttonBase =
   "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all disabled:pointer-events-none disabled:opacity-50"
 
 const buttonVariants: Record<ButtonVariant, string> = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-[0_1px_2px_rgba(37,83,235,0.35),inset_0_1px_0_rgba(255,255,255,0.14)]",
+  primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-[0_1px_2px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)]",
   secondary: "bg-white text-zinc-900 ring-1 ring-zinc-200 hover:ring-zinc-300 hover:bg-zinc-50",
   ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950",
   danger: "bg-white text-zinc-950 ring-1 ring-zinc-950 hover:bg-zinc-950 hover:text-white",

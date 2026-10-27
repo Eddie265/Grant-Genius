@@ -1,9 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { pageMetadata } from "@/lib/seo"
 import { LegalDoc, type LegalSection } from "@/components/site/LegalDoc"
 import { legal, site } from "@/lib/site"
 
-export const metadata: Metadata = { title: "Privacy Policy" }
+export const metadata: Metadata = pageMetadata({
+  title: "Privacy Policy",
+  description: "How Grant Genius Africa collects, uses and protects personal data under the Malawi Data Protection Act 2024, and how to export or delete your data.",
+  path: "/legal/privacy",
+})
 
 const processors = [
   ["Neon (Databricks, Inc.)", "Database hosting for accounts, proposals and messages", "United States (AWS us-east-2)"],

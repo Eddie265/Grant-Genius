@@ -1,9 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { pageMetadata } from "@/lib/seo"
 import { LegalDoc, type LegalSection } from "@/components/site/LegalDoc"
 import { plans, site } from "@/lib/site"
 
-export const metadata: Metadata = { title: "Billing & Refund Policy" }
+export const metadata: Metadata = pageMetadata({
+  title: "Billing & Refund Policy",
+  description: "How Grant Genius Africa plans, upgrades, cancellations and the 14-day refund guarantee work.",
+  path: "/legal/refunds",
+})
 
 const sections: LegalSection[] = [
   {

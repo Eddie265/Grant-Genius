@@ -1,9 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { pageMetadata } from "@/lib/seo"
 import { LegalDoc, type LegalSection } from "@/components/site/LegalDoc"
 import { site } from "@/lib/site"
 
-export const metadata: Metadata = { title: "Cookie Policy" }
+export const metadata: Metadata = pageMetadata({
+  title: "Cookie Policy",
+  description: "Grant Genius Africa uses only essential cookies to keep you signed in and secure. No analytics or advertising cookies.",
+  path: "/legal/cookies",
+})
 
 const cookies = [
   ["next-auth.session-token", "Cookie", "Keeps you signed in to your account", "30 days"],

@@ -5,18 +5,18 @@
   --font-sans: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 
-  /* Brand blue: the accent colour for actions, focus, badges and charts */
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #dbe7fe;
-  --color-brand-200: #bfd4fe;
-  --color-brand-300: #93b6fd;
-  --color-brand-400: #6090fa;
-  --color-brand-500: #3b6cf6;
-  --color-brand-600: #2553eb;
-  --color-brand-700: #1d40d8;
-  --color-brand-800: #1e36af;
-  --color-brand-900: #1e328a;
-  --color-brand-950: #0b1535;
+  /* Brand: black & white. Accent scale runs light grey -> black */
+  --color-brand-50: #f4f4f5;
+  --color-brand-100: #e4e4e7;
+  --color-brand-200: #d4d4d8;
+  --color-brand-300: #a1a1aa;
+  --color-brand-400: #71717a;
+  --color-brand-500: #3f3f46;
+  --color-brand-600: #18181b;
+  --color-brand-700: #09090b;
+  --color-brand-800: #09090b;
+  --color-brand-900: #09090b;
+  --color-brand-950: #09090b;
 
   /* Legacy accent scales resolve to neutral grays */
   --color-primary-50: #fafafa;

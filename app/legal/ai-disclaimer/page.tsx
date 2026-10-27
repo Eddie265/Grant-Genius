@@ -1,8 +1,13 @@
 import type { Metadata } from "next"
+import { pageMetadata } from "@/lib/seo"
 import { LegalDoc, type LegalSection } from "@/components/site/LegalDoc"
 import { site } from "@/lib/site"
 
-export const metadata: Metadata = { title: "AI & Content Disclaimer" }
+export const metadata: Metadata = pageMetadata({
+  title: "AI & Content Disclaimer",
+  description: "AI-generated grant proposal drafts must be reviewed and verified. Grant listings may change and funding is never guaranteed.",
+  path: "/legal/ai-disclaimer",
+})
 
 const sections: LegalSection[] = [
   {

@@ -1,9 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { pageMetadata } from "@/lib/seo"
 import { LegalDoc, type LegalSection } from "@/components/site/LegalDoc"
 import { legal, site } from "@/lib/site"
 
-export const metadata: Metadata = { title: "Terms of Service" }
+export const metadata: Metadata = pageMetadata({
+  title: "Terms of Service",
+  description: "The terms that govern your use of Grant Genius Africa, including ownership of your proposals, AI output and Malawian governing law.",
+  path: "/legal/terms",
+})
 
 const sections: LegalSection[] = [
   {
